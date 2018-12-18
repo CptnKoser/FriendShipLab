@@ -5,18 +5,12 @@ import { map } from 'rxjs/operators';
 
 import { AuthUser, User } from '../models/user';
 import { tokenGetter } from '../app.module';
-import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   jwtHelper = new JwtHelperService();
-  private loggedIn = new BehaviorSubject<boolean>(false); // {1}
-
-  get isLoggedIn() {
-    return this.loggedIn.asObservable(); // {2}
-  }
 
   constructor(private http: HttpClient) { }
 
@@ -40,8 +34,8 @@ export class AuthService {
         if (result) {
           localStorage.setItem('token', result.tokenString);
           localStorage.setItem('user', JSON.stringify(result.user));
-          this.loggedIn.next(true);
         }
+        console.log(this.loggedInStatus());
         return result;
       }));
   }
@@ -63,13 +57,12 @@ export class AuthService {
 
   loggedInStatus() {
     const token = tokenGetter();
-    if (!token) { this.loggedIn.next(false); return false; }
-    this.loggedIn.next(true);
+    if (!token) return false;
+
     return !this.jwtHelper.isTokenExpired(token);
   }
 
   logOutUser() {
-    this.loggedIn.next(false);
     return localStorage.removeItem('token');
   }
 }

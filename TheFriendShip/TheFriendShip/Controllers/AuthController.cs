@@ -8,7 +8,8 @@ using System.Security.Claims;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using TheFriendShip.Data;
-
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace TheFriendShip.Controllers
 {
@@ -30,7 +31,9 @@ namespace TheFriendShip.Controllers
         {
             if (ModelState.IsValid)
             {
-                var result = await _signInManager.PasswordSignInAsync(user.UserName, user.Password, false, false);
+                var userInfo = await _userManager.FindByNameAsync(user.UserName);
+                var result = await _signInManager.CheckPasswordSignInAsync(userInfo, user.Password, false);
+                //var result = await _signInManager.PasswordSignInAsync(user.UserName, user.Password, false, false);
                 if (result.Succeeded)
                 {
 
@@ -53,6 +56,7 @@ namespace TheFriendShip.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterVM user)
         {
+            //return await SeedDb();
             if (!string.IsNullOrEmpty(user.UserName))
             {
                 // Make user name lower case
@@ -90,5 +94,19 @@ namespace TheFriendShip.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-    }
+        private async Task<IActionResult> SeedDb()
+        {
+            var userData = System.IO.File.ReadAllText("Data/UserData.json");
+            var users = JsonConvert.DeserializeObject<List<User>>(userData);
+            System.Diagnostics.Debug.WriteLine(userData);
+            foreach (var user in users)
+            {
+                user.UserName = user.UserName.ToLower();
+                string pw = user.PasswordHash;
+                user.PasswordHash = null;
+                await _userManager.CreateAsync(user, pw);
+            }
+            return Ok("DB seeded");
+        }
+    }  
 }
